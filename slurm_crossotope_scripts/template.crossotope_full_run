@@ -1,0 +1,53 @@
+#!/bin/bash
+
+subj_id=SUBJECTID
+ses_id=SESID
+data_dir=DATADIR
+data_bucket=BUCKET
+run_dir=RUNDIR
+singularity=`which singularity`
+
+rois_dir="/home/faird/shared/projects/wlf-test/fr/output-half-HCP"
+config_file="/home/faird/shared/projects/wlf-test/fr/crossotope_mapping/config.json" 
+MRE="/home/faird/shared/code/external/utilities/MATLAB_Runtime_R2019a_update9/v96/"
+
+s3_derivs=${data_bucket}/derivatives/adhd_prisma/derivatives/abcd-hcp-pipeline
+
+dtseries_suffix=task-rest_bold_desc-filtered_timeseries.dtseries.nii
+motion_suffix=task-rest_bold_desc-filtered_motion_mask.mat
+dtseries=sub-${subj_id}_ses-${ses_id}_${dtseries_suffix}
+motion=sub-${subj_id}_ses-${ses_id}_${motion_suffix}
+
+# pull down needed data and files from BIDS bucket
+s3cmd sync ${s3_derivs}/sub-${subj_id}/ses-${ses_id}/func/${dtseries} ${data_dir}/${dtseries}
+s3cmd sync ${s3_derivs}/sub-${subj_id}/ses-${ses_id}/func/${motion} ${data_dir}/${motion}
+
+outdir=${data_dir}/LRvalues_ALL_HCP_ROIs/sub-${subj_id}/ses-${ses_id}
+mkdir -p $outdir
+
+for roi_dir in ${rois_dir}/L_*/; do
+	echo "$roi_dir"    
+	bn=$(basename "$roi_dir")
+    mkdir "${outdir}/${bn}" #probably want to make this in tmp space and then sync to s3 at end
+                
+	env -i ${singularity} run \
+	-B ${data_dir}:/session \
+	-B ${roi_dir}:/input_rois \
+	-B ${MRE}:/matlab \
+	-B ${config_file}:/config.json \
+	-B ${outdir}/${bn}:/output \
+	/home/faird/shared/projects/wlf-test/fr/crossotope_mapping/crossotope.sif analysis \
+	--roi_dir /input_rois --n_samples 100 --matlab "$(which matlab)" --MRE /matlab \
+	--json_config /config.json --label ${bn} \
+	/session/{${dtseries},${motion}}  									
+done								
+
+#push processed outputs to bucket  
+s3cmd sync -F --recursive -v ${outdir} ${data_bucket}/LRvalues_ALL_HCP_ROIs/sub-${subj_id}/ses-${ses_id}
+
+
+
+
+
+
+
