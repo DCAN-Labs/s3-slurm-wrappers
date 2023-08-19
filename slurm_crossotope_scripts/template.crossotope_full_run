@@ -28,7 +28,7 @@ mkdir -p $outdir
 for roi_dir in ${rois_dir}/L_*/; do
 	echo "$roi_dir"    
 	bn=$(basename "$roi_dir")
-    mkdir "${outdir}/${bn}" #probably want to make this in tmp space and then sync to s3 at end
+    mkdir "${outdir}/${bn}"
                 
 	env -i ${singularity} run \
 	-B ${data_dir}:/session \
