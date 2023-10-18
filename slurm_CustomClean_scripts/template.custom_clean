@@ -1,0 +1,26 @@
+#!/bin/bash
+
+subj_id=SUBJECTID
+ses_id=SESID
+data_dir=DATADIR
+data_bucket=BUCKET
+run_dir=RUNDIR
+singularity=`which singularity`
+
+BIDS_DIR=${data_dir}/sub-${subj_id}
+OUTPUT_DIR=${data_dir}/processed/dcan-infant-pipeline
+
+# pull down needed data and files from BIDS bucket
+if [ ! -d ${data_dir}/sub-${subj_id}/ses-${ses_id} ]; then
+	mkdir -p ${BIDS_DIR}
+	s3cmd get ${data_bucket}/processed_nnUNet/dcan-infant-pipeline/sub-${subj_id}/ses-${ses_id} ${BIDS_DIR} --recursive -v
+fi
+
+python3 /home/faird/shared/code/internal/utilities/CustomClean/cleaning_script.py \
+-j ${run_dir}/HCP-D_BIDS_cleaning.json \
+-d ${BIDS_DIR}/ses-${ses_id}
+
+#push processed outputs to bucket
+s3cmd sync -F --recursive -v ${BIDS_DIR}/sub-${subj_id}/ses-${ses_id}/ \
+${data_bucket}/processed/dcan-infant-pipeline/sub-${subj_id}/ses-${ses_id}/
+
