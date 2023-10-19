@@ -16,8 +16,6 @@
 
 cd run_files.custom_clean
 
-module load singularity
-
 file=run${SLURM_ARRAY_TASK_ID}
 
 bash ${file}
