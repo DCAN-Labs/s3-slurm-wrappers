@@ -5,10 +5,8 @@ ses_id=SESID
 data_dir=DATADIR
 data_bucket=BUCKET
 run_dir=RUNDIR
-singularity=`which singularity`
 
 BIDS_DIR=${data_dir}/sub-${subj_id}
-OUTPUT_DIR=${data_dir}/processed/dcan-infant-pipeline
 
 # pull down needed data and files from BIDS bucket
 if [ ! -d ${data_dir}/sub-${subj_id}/ses-${ses_id} ]; then
@@ -21,6 +19,6 @@ python3 /home/faird/shared/code/internal/utilities/CustomClean/cleaning_script.p
 -d ${BIDS_DIR}/ses-${ses_id}/files
 
 #push processed outputs to bucket
-s3cmd sync -F --recursive -v ${BIDS_DIR}/sub-${subj_id}/ses-${ses_id}/ \
+s3cmd sync -F --recursive -v ${BIDS_DIR}/ses-${ses_id}/ \
 ${data_bucket}/processed/dcan-infant-pipeline/sub-${subj_id}/ses-${ses_id}/
 

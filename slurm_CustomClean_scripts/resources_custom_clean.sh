@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH -c 2
 #SBATCH --mem=180G
-#SBATCH --tmp=100gb
+#SBATCH --tmp=200gb
 #SBATCH -t 5:00:00
 #SBATCH -p amd512,amdsmall,amdlarge,ram256g
 #SBATCH --mail-type=ALL
