@@ -1,0 +1,6 @@
+old/
+run_files.reliability_full/
+output_logs/
+scratch.sh
+template.pscalar.nii
+template.txt
