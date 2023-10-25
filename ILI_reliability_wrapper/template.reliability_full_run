@@ -1,12 +1,9 @@
 #!/bin/bash
-
 subject=SUBJECTID
 work_dir=WORKDIR
 data_dir=DATADIR
 run_folder=RUNDIR
 out_dir=OUTDIR
-template_pscalar=PSCALAR
-roi_label=ROILABEL
 
 # running on seven target roi
 rois_dir=/home/faird/shared/projects/wlf-test/fr/output-half-HCP
@@ -43,8 +40,6 @@ for roi_dir in "$rois_dir"/L_{55b,V1,4,FEF,FFC}_ROI/ ${two_customized_roi_dir}/{
 done
 
 ## RUN ILI on x min sample of half1 dtseries for 7 ROIS
-label_file=/home/feczk001/shared/ROI_sets/Surface_schemes/Human/HCP/fsLR/HCP.32k_fs_LR.dlabel.nii
-
 #remove hashes from data for preprocessing, where subdir is the output dir from step 1 above that contains 7 csv files
 for csv_file in `ls ${subdir}/*.csv`; do
     sed 's|# ||' <${csv_file} >${subdir}/blah.csv
@@ -61,48 +56,9 @@ singularity run \
     -B "${outdir}:/output" \
     /home/faird/shared/projects/wlf-test/fr/crossotope_mapping/crossotope.sif ili /input /output/output.csv
 
-## Change directory to outdir
-pushd ${outdir}
- 
-# Start over this file
-rm -f output_forcifti.csv ; touch output_forcifti.csv
-for i in {1..360} ; do
-    # For each index between 1 and 360, identify the name of the corresponding ROI from the text file
-    ROI=$(grep "Key=\"${i}\"" $roi_label | \
-        sed -e 's/<Label .* Alpha="1">//' -e 's|</Label>||')
-echo $ROI
-  # Look up that ROIs value in the output csv file (use awk to get third
-  #   column). Replace values not found with 0
-  value=$(grep ${ROI} ${output_dir}/output.csv | awk -F, '{print $3}')
-  if [[ ${value} == "" ]] ; then value="0" ; fi
+## Run correlation
+half1_csv=${outdir}/output.csv
+half2_csv=
 
-  # Echo output to CSV file. This should have exactly 360 rows of mostly 0s
-  # echo ${value}
-  echo ${value} >> output_forcifti.csv
-
-done
-
-# Convert CSV to pscalar
-wb_command -cifti-convert \
-  -from-text output_forcifti.csv ${template_pscalar} \
-  output.pscalar.nii
-
-echo $(pwd)/output.pscalar.nii
-
-
-
-
-#Fez notes on ILI script:
-#  for keyitem in `wb_command -file-information $label_file -only-cifti-xml | grep "Label Key"`; do 
- #   alphaline=`echo $keyitem | grep Alpha`
-  #  roisuffix=`echo $alphaline | awk -F'>' '{print $2}'`
-   # roilabel=`echo $roisuffix | awk -F'<' '{print $1}'`
- #   if ! [ -z $roilabel ]; then 
-  #    roiname=L_`echo $roilabel | cut -f2-3 -d_`
-  #    grep $roiname ${output_dir}/output.csv |cut -f3 -d',' >> output_forcifti.csv
-  #  else
-#      echo 0 >> output_forcifti.csv
- #   fi
-  #done
- # wb_command -cifti-convert -from-text output_forcifti.csv $template_pscalar output.pscalar.nii
-#popd
+correlation=$(python3 intrasubject_similarity.py ${half1_csv} ${half2_csv})
+echo "$correlation" >> ${subject}_correlation.csv
